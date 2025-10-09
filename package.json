@@ -1,0 +1,43 @@
+{
+  "name": "nil-ai-key-verifier",
+  "version": "1.0.0",
+  "description": "Professional desktop application for validating Nillion API keys and generating verification reports - LOCAL USE ONLY",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node start.js",
+    "chat": "node chat.js",
+    "test": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/draken1721/nil-ai-verifier.git"
+  },
+  "bugs": {
+    "url": "https://github.com/draken1721/nil-ai-verifier/issues"
+  },
+  "homepage": "https://github.com/draken1721/nil-ai-verifier#readme",
+  "dependencies": {
+    "@nillion/nilai-ts": "latest"
+  },
+  "keywords": [
+    "nillion",
+    "nil-ai",
+    "api-key-verification",
+    "validation",
+    "testing",
+    "sdk",
+    "nillion-sdk",
+    "development-tool",
+    "local-development"
+  ],
+  "author": {
+    "name": "DrakeN",
+    "url": "https://draken.space",
+    "twitter": "@draken1721"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
