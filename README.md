@@ -99,7 +99,7 @@ Show your AI assistant **definitive evidence** so it focuses on the real problem
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/draken1721/nil-ai-verifier.git
+   git clone https://github.com/DrakeN1721/nillion-api-tester.git
    cd nil-ai-verifier
    ```
 
