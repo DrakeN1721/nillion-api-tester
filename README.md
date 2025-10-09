@@ -100,7 +100,7 @@ Show your AI assistant **definitive evidence** so it focuses on the real problem
 1. **Clone the repository**:
    ```bash
    git clone https://github.com/DrakeN1721/nillion-api-tester.git
-   cd verification-ui/
+   cd nillion-api-tester
    ```
 
 2. **Install dependencies**:
@@ -129,6 +129,7 @@ Show your AI assistant **definitive evidence** so it focuses on the real problem
 
 ```bash
 cd verification-ui
+npm install  # Install dependencies first
 npm run electron-dev
 ```
 
@@ -138,7 +139,22 @@ This launches the full verification UI with:
 - Real-time logs
 - PDF report generation
 
-#### Option 2: CLI Tools
+#### Option 2: Browser Only (No Electron)
+
+```bash
+cd verification-ui
+npm install  # Install dependencies first
+npm start
+```
+
+The application will open in your default browser at `http://localhost:3000`
+
+**Note**: Some features may have limited functionality in browser mode:
+- No system keychain integration (uses encrypted localStorage)
+- No native desktop features
+- Requires manual port configuration if 3000 is in use
+
+#### Option 3: CLI Tools
 
 ```bash
 # Test API connection
@@ -452,7 +468,7 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for:
 
 ## 🐛 Known Issues
 
-See [GitHub Issues](https://github.com/YOUR-USERNAME/nil-ai-verifier/issues) for current bugs and feature requests.
+See [GitHub Issues](https://github.com/DrakeN1721/nillion-api-tester/issues) for current bugs and feature requests.
 
 ---
 
@@ -468,7 +484,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Website: [https://draken.space](https://draken.space)
 - Twitter: [@draken1721](https://x.com/draken1721)
-- GitHub: [@YOUR-USERNAME](https://github.com/YOUR-USERNAME)
+- GitHub: [@DrakeN1721](https://github.com/DrakeN1721)
 
 ---
 

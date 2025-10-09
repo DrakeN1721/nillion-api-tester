@@ -6,10 +6,10 @@
   "homepage": "./",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YOUR-USERNAME/nil-ai-verifier.git"
+    "url": "git+https://github.com/DrakeN1721/nillion-api-tester.git"
   },
   "bugs": {
-    "url": "https://github.com/YOUR-USERNAME/nil-ai-verifier/issues"
+    "url": "https://github.com/DrakeN1721/nillion-api-tester/issues"
   },
   "keywords": [
     "nillion",

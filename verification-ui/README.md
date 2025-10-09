@@ -23,21 +23,41 @@ When integrating with Nil AI APIs, developers often face mysterious failures. LL
 
 ## 🚀 Quick Start
 
-### Option 1: Clone and Run Locally
+### Option 1: Electron Desktop App (Recommended)
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/nil-ai-verifier.git
-cd nil-ai-verifier
+git clone https://github.com/DrakeN1721/nillion-api-tester.git
+cd nillion-api-tester/verification-ui
 
 # Install dependencies
 npm install
 
-# Start the application
+# Run as Electron desktop app
+npm run electron-dev
+```
+
+### Option 2: Browser Only (No Electron)
+```bash
+# Clone the repository
+git clone https://github.com/DrakeN1721/nillion-api-tester.git
+cd nillion-api-tester/verification-ui
+
+# Install dependencies
+npm install
+
+# Start development server (opens in browser)
 npm start
 ```
 
-### Option 2: Download Pre-built Release
-1. Go to the [Releases](https://github.com/your-username/nil-ai-verifier/releases) page
+The application will open in your default browser at `http://localhost:3000`
+
+**Note**: Browser mode has some limitations:
+- No system keychain integration (uses encrypted localStorage)
+- No native desktop features
+- Requires manual port configuration if 3000 is in use
+
+### Option 3: Download Pre-built Release
+1. Go to the [Releases](https://github.com/DrakeN1721/nillion-api-tester/releases) page
 2. Download the latest version for your operating system
 3. Run the executable - no installation required!
 
@@ -181,8 +201,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔗 Links
 
-- **GitHub Repository**: https://github.com/your-username/nil-ai-verifier
-- **Issue Tracker**: https://github.com/your-username/nil-ai-verifier/issues
+- **GitHub Repository**: https://github.com/DrakeN1721/nillion-api-tester
+- **Issue Tracker**: https://github.com/DrakeN1721/nillion-api-tester/issues
 - **Nil AI Documentation**: https://docs.nillion.com/
 - **Official Nil AI**: https://nillion.com/
 
@@ -190,7 +210,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Having issues? Here's how to get help:
 
-1. **Check the [Issues](https://github.com/your-username/nil-ai-verifier/issues)** page for known problems
+1. **Check the [Issues](https://github.com/DrakeN1721/nillion-api-tester/issues)** page for known problems
 2. **Search existing issues** to see if your problem has been reported
 3. **Create a new issue** if you can't find a solution
 4. **Provide detailed information** including error messages and steps to reproduce
