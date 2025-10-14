@@ -307,7 +307,7 @@ export function DiagnosticPanel({ apiKey, baseURL, model }) {
       // Test 1: SDK Authentication (if API key provided)
       if (apiKey) {
         try {
-          const sdkService = new NilAIService({ apiKey, model, baseURL });
+          const sdkService = new NilAIService(apiKey, model || 'google/gemma-3-27b-it');
           const sdkResult = await sdkService.testConnection();
           diagnosticResults.tests.sdk = {
             success: sdkResult.success,

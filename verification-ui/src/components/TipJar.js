@@ -60,6 +60,20 @@ const ToggleButton = styled.button`
   }
 `;
 
+const ENSBadge = styled.div`
+  display: ${props => props.isMinimized ? 'flex' : 'none'};
+  align-items: center;
+  padding: 4px 10px;
+  background: rgba(0, 255, 255, 0.1);
+  border: 1px solid ${props => props.theme.colors.border};
+  border-radius: 4px;
+  font-family: ${props => props.theme.fonts.mono};
+  font-size: 0.7rem;
+  color: ${props => props.theme.colors.accent};
+  margin-left: auto;
+  white-space: nowrap;
+`;
+
 const TipContent = styled.div`
   display: ${props => props.isMinimized ? 'none' : 'block'};
   animation: ${props => props.isMinimized ? 'none' : 'fadeIn 0.3s ease'};
@@ -263,6 +277,7 @@ export const TipJar = () => {
         <Coffee size={20} color="#00ff88" />
         <h3>Support This Project</h3>
         <Heart size={16} className="heart" />
+        <ENSBadge isMinimized={isMinimized}>drakenspace.eth</ENSBadge>
         <ToggleButton>
           {isMinimized ? <ChevronDown /> : <ChevronUp />}
         </ToggleButton>

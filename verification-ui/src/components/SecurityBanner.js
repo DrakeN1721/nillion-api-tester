@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { AlertTriangle, Lock, Eye, Wifi } from 'lucide-react';
+import { AlertTriangle, Lock, Eye, Wifi, X } from 'lucide-react';
 
 const pulse = keyframes`
   0% { opacity: 1; }
@@ -19,10 +19,17 @@ const BannerContainer = styled.div`
   gap: 8px;
   backdrop-filter: blur(4px);
   animation: ${pulse} 3s ease-in-out infinite;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  max-height: ${props => props.isMinimized ? '0px' : '200px'};
+  opacity: ${props => props.isMinimized ? '0' : '1'};
+  padding: ${props => props.isMinimized ? '0' : '8px 12px'};
+  margin: ${props => props.isMinimized ? '0 12px' : '4px 12px'};
+  border-width: ${props => props.isMinimized ? '0' : '2px'};
 
   @media (min-width: 768px) {
-    padding: 12px 16px;
-    margin: 8px 20px;
+    padding: ${props => props.isMinimized ? '0' : '12px 16px'};
+    margin: ${props => props.isMinimized ? '0 20px' : '8px 20px'};
     gap: 12px;
   }
 
@@ -106,11 +113,53 @@ const StatusIndicator = styled.div`
   }
 `;
 
+const CloseButton = styled.button`
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 4px;
+  margin-left: 8px;
+  cursor: pointer;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+`;
+
 export const SecurityBanner = ({
   securityEnabled,
   isLocalhost,
   environmentWarnings = []
 }) => {
+  // Manage minimized state with localStorage
+  const [isMinimized, setIsMinimized] = useState(() => {
+    const saved = localStorage.getItem('security-banner-minimized');
+    return saved === 'true';
+  });
+
+  const handleMinimize = useCallback(() => {
+    setIsMinimized(prev => {
+      const newState = !prev;
+      localStorage.setItem('security-banner-minimized', newState);
+      return newState;
+    });
+  }, []);
+
   // Don't show banner if no security concerns
   if (isLocalhost && !securityEnabled && environmentWarnings.length === 0) {
     return null;
@@ -159,7 +208,7 @@ export const SecurityBanner = ({
   }
 
   return (
-    <BannerContainer className={bannerClass}>
+    <BannerContainer className={bannerClass} isMinimized={isMinimized}>
       <BannerIcon>
         {icon}
       </BannerIcon>
@@ -185,6 +234,10 @@ export const SecurityBanner = ({
         <div className="status-dot"></div>
         {statusText}
       </StatusIndicator>
+
+      <CloseButton onClick={handleMinimize} title="Hide security banner">
+        <X />
+      </CloseButton>
     </BannerContainer>
   );
 };

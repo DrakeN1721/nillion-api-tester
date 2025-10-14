@@ -79,6 +79,8 @@ const MainContent = styled.div`
   width: 100%;
   max-width: 100vw;
   box-sizing: border-box;
+  /* Dynamic height based on banner state */
+  height: ${props => props.bannerMinimized ? 'calc(100vh - 120px)' : 'calc(100vh - 160px)'};
 
   @media (min-width: 1024px) {
     flex-direction: row;
@@ -217,6 +219,12 @@ function App() {
   // Logs collapse state
   const [isLogsCollapsed, setIsLogsCollapsed] = useState(false);
 
+  // Banner minimized state (synced with SecurityBanner localStorage)
+  const [isBannerMinimized, setIsBannerMinimized] = useState(() => {
+    const saved = localStorage.getItem('security-banner-minimized');
+    return saved === 'true';
+  });
+
   // Service instances
   const [nilAIService, setNilAIService] = useState(null);
   const [bearerService, setBearerService] = useState(null);
@@ -224,6 +232,25 @@ function App() {
 
   // Authentication mode ('sdk' or 'bearer')
   const [authMode, setAuthMode] = useState('sdk');
+
+  // Sync banner minimized state with localStorage changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem('security-banner-minimized');
+      setIsBannerMinimized(saved === 'true');
+    };
+
+    // Listen for storage events (from other tabs/windows)
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also check periodically for same-window updates
+    const interval = setInterval(handleStorageChange, 500);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   // Initialize security settings and environment detection
   useEffect(() => {
@@ -844,7 +871,7 @@ function App() {
           )}
 
           {activeTab === 'main' && (
-          <MainContent>
+          <MainContent bannerMinimized={isBannerMinimized}>
             <ApiSection logsCollapsed={isLogsCollapsed}>
               <ApiKeyCard>
                 <ApiKeyManager
