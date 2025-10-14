@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Save, RotateCcw, FileText, Shield, Settings, Lock, Home, Info } from 'lucide-react';
+import { Save, RotateCcw, FileText, Shield, Settings, Lock, Home, Info, Activity } from 'lucide-react';
 
 const HeaderContainer = styled.header`
   display: flex;
@@ -175,6 +175,14 @@ function Header({ isConnected, onExport, onNewSession, onSecuritySettings, secur
         >
           <Home />
           Main
+        </TabButton>
+        <TabButton
+          active={activeTab === 'diagnostics'}
+          onClick={() => onTabChange('diagnostics')}
+          title="Run comprehensive API diagnostics"
+        >
+          <Activity />
+          Diagnostics
         </TabButton>
         <TabButton
           active={activeTab === 'about'}

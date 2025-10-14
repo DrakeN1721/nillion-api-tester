@@ -1,21 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import { Send, Trash2, User, Bot, Clock, Zap, MessageSquare, ChevronDown } from 'lucide-react';
+import { Send, Trash2, User, Bot, Clock, Zap, MessageSquare, ChevronDown, Key, Shield } from 'lucide-react';
 
 const Container = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: ${props => props.theme.colors.primary};
+  background: transparent;
 `;
 
 const ChatHeader = styled.div`
   display: flex;
   align-items: center;
-  justify-content: between;
+  justify-content: space-between;
   padding: 16px;
   border-bottom: 1px solid ${props => props.theme.colors.border};
-  background: ${props => props.theme.colors.secondary};
+  background: transparent;
+  flex-shrink: 0;
+
+  @media (min-width: 768px) {
+    padding: 20px;
+  }
 `;
 
 const HeaderTitle = styled.h3`
@@ -26,31 +31,69 @@ const HeaderTitle = styled.h3`
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
+`;
+
+const AuthModeBadge = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: ${props => props.theme.colors.tertiary};
+  border: 1px solid ${props => props.theme.colors.border};
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: ${props => props.theme.colors.textSecondary};
+  white-space: nowrap;
+
+  svg {
+    width: 12px;
+    height: 12px;
+  }
 `;
 
 const HeaderActions = styled.div`
   display: flex;
   gap: 8px;
   margin-left: auto;
+  align-items: center;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  padding-right: 12px;
 `;
 
 const HeaderButton = styled.button`
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  background: transparent;
+  gap: 6px;
+  padding: 7px 14px;
+  background: ${props => props.theme.colors.tertiary};
   border: 1px solid ${props => props.theme.colors.border};
   border-radius: 6px;
-  color: ${props => props.theme.colors.textSecondary};
+  color: ${props => props.theme.colors.text};
   font-size: 0.75rem;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  flex-shrink: 0;
+  white-space: nowrap;
 
-  &:hover {
-    background: ${props => props.theme.colors.tertiary};
+  &:hover:not(:disabled) {
+    background: ${props => props.theme.colors.secondary};
     border-color: ${props => props.theme.colors.accent};
     color: ${props => props.theme.colors.accent};
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 
   svg {
@@ -60,10 +103,17 @@ const HeaderButton = styled.button`
 `;
 
 const MessagesArea = styled.div`
+  flex: 1;
+  overflow-y: auto;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  background: ${props => props.theme.colors.primary};
+
+  @media (min-width: 768px) {
+    padding: 20px;
+  }
 `;
 
 const EmptyState = styled.div`
@@ -158,7 +208,12 @@ const MetaItem = styled.span`
 const InputArea = styled.div`
   padding: 16px;
   border-top: 1px solid ${props => props.theme.colors.border};
-  background: ${props => props.theme.colors.secondary};
+  background: transparent;
+  flex-shrink: 0;
+
+  @media (min-width: 768px) {
+    padding: 20px;
+  }
 `;
 
 const InputContainer = styled.div`
@@ -257,7 +312,7 @@ const TypingIndicator = styled.div`
   }
 `;
 
-function ChatInterface({ chatHistory, onSendMessage, onClearChat, isConnected, isLoading }) {
+function ChatInterface({ chatHistory, onSendMessage, onClearChat, isConnected, isLoading, apiKey, baseURL, model, authMode }) {
   const [message, setMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
@@ -269,6 +324,7 @@ function ChatInterface({ chatHistory, onSendMessage, onClearChat, isConnected, i
   //     messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
   //   }
   // }, [chatHistory.length, isTyping]);
+
 
   // Focus input when connected
   useEffect(() => {
@@ -290,6 +346,7 @@ function ChatInterface({ chatHistory, onSendMessage, onClearChat, isConnected, i
       setIsTyping(false);
     }
   };
+
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
@@ -324,6 +381,11 @@ function ChatInterface({ chatHistory, onSendMessage, onClearChat, isConnected, i
           {chatHistory.length > 0 && <span>({chatHistory.length} messages)</span>}
         </HeaderTitle>
 
+        <AuthModeBadge>
+          {authMode === 'sdk' ? <Key /> : <Shield />}
+          {authMode === 'sdk' ? 'SDK' : 'Bearer'}
+        </AuthModeBadge>
+
         <HeaderActions>
           <HeaderButton
             onClick={() => {
@@ -332,27 +394,9 @@ function ChatInterface({ chatHistory, onSendMessage, onClearChat, isConnected, i
               }
             }}
             disabled={chatHistory.length === 0}
-            title="Scroll to messages"
+            title="Scroll to bottom"
           >
             <ChevronDown />
-            Scroll to Messages
-          </HeaderButton>
-          <HeaderButton
-            onClick={() => {
-              // Add test messages for scrolling
-              for (let i = 0; i < 10; i++) {
-                const testMessage = {
-                  id: Date.now() + i,
-                  role: i % 2 === 0 ? 'user' : 'assistant',
-                  content: `Test message ${i + 1} - Lorem ipsum dolor sit amet, consectetur adipiscing elit.`,
-                  timestamp: new Date().toISOString()
-                };
-                onSendMessage && onSendMessage(`Test message ${i + 1}`);
-              }
-            }}
-            title="Add test messages"
-          >
-            Test
           </HeaderButton>
           <HeaderButton onClick={onClearChat} disabled={chatHistory.length === 0}>
             <Trash2 />
@@ -360,6 +404,7 @@ function ChatInterface({ chatHistory, onSendMessage, onClearChat, isConnected, i
           </HeaderButton>
         </HeaderActions>
       </ChatHeader>
+
 
       <MessagesArea data-testid="messages-area">
         {chatHistory.length === 0 ? (

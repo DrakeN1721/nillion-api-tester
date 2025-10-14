@@ -12,7 +12,9 @@ import { TipJar } from './components/TipJar';
 import { AboutSection } from './components/AboutSection';
 import { WelcomeSplash } from './components/WelcomeSplash';
 import { ExportModal } from './components/ExportModal';
+import { DiagnosticPanel } from './components/DiagnosticPanel';
 import { NilAIService } from './services/nilAIService';
+import { BearerTokenService } from './services/BearerTokenService';
 import { LogManager } from './utils/logManager';
 import { ExportUtils } from './utils/exportUtils';
 import { EnvironmentDetector, SecuritySettingsManager } from './utils/environment';
@@ -73,47 +75,71 @@ const MainContent = styled.div`
   display: flex;
   flex-direction: column;
   flex: 1;
-  gap: 16px;
+  gap: 0;
   width: 100%;
   max-width: 100vw;
   box-sizing: border-box;
 
   @media (min-width: 1024px) {
     flex-direction: row;
-    gap: 0;
   }
 `;
 
-const LeftPanel = styled.div`
+const ApiSection = styled.div`
   display: flex;
   flex-direction: column;
   width: 100%;
+  border-bottom: 1px solid ${props => props.theme.colors.border};
 
   @media (min-width: 1024px) {
-    width: 50%;
+    width: ${props => props.logsCollapsed ? '40%' : '30%'};
     border-right: 1px solid ${props => props.theme.colors.border};
+    border-bottom: none;
   }
 
   @media (min-width: 1400px) {
-    width: 60%;
+    width: ${props => props.logsCollapsed ? '45%' : '35%'};
   }
+
+  transition: width 0.3s ease;
 `;
 
-const RightPanel = styled.div`
-  width: 100%;
+const ChatSection = styled.div`
   display: flex;
   flex-direction: column;
+  width: 100%;
+  border-bottom: 1px solid ${props => props.theme.colors.border};
 
   @media (min-width: 1024px) {
-    width: 50%;
+    width: ${props => props.logsCollapsed ? '50%' : '40%'};
+    border-right: 1px solid ${props => props.theme.colors.border};
+    border-bottom: none;
   }
 
   @media (min-width: 1400px) {
-    width: 40%;
+    width: ${props => props.logsCollapsed ? '50%' : '40%'};
   }
+
+  transition: width 0.3s ease;
 `;
 
-const ApiKeySection = styled.div`
+const LogsSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+
+  @media (min-width: 1024px) {
+    width: ${props => props.isCollapsed ? '60px' : '30%'};
+  }
+
+  @media (min-width: 1400px) {
+    width: ${props => props.isCollapsed ? '60px' : '25%'};
+  }
+
+  transition: width 0.3s ease;
+`;
+
+const ApiKeyCard = styled.div`
   padding: 16px;
   border-bottom: 1px solid ${props => props.theme.colors.border};
   background: ${props => props.theme.colors.secondary};
@@ -127,25 +153,30 @@ const ApiKeySection = styled.div`
   }
 `;
 
-const ChatSection = styled.div`
+const ChatCard = styled.div`
   display: flex;
   flex-direction: column;
-  margin: 0 16px 16px 16px;
+  height: calc(100% - 32px);
+  margin: 16px;
+  background: ${props => props.theme.colors.secondary};
+  border: 1px solid ${props => props.theme.colors.border};
+  border-radius: 8px;
+  overflow: hidden;
 
   @media (min-width: 768px) {
-    margin: 0 20px 20px 20px;
+    margin: 20px;
+    height: calc(100% - 40px);
   }
 `;
 
 const LogsContainer = styled.div`
   display: flex;
   flex-direction: column;
-  margin: 16px;
-  height: calc(100% - 32px);
+  height: 100%;
+  padding: 16px;
 
   @media (min-width: 768px) {
-    margin: 20px;
-    height: calc(100% - 40px);
+    padding: 20px;
   }
 `;
 
@@ -183,9 +214,16 @@ function App() {
   // Model selection state
   const [selectedModel, setSelectedModel] = useState('google/gemma-3-27b-it');
 
+  // Logs collapse state
+  const [isLogsCollapsed, setIsLogsCollapsed] = useState(false);
+
   // Service instances
   const [nilAIService, setNilAIService] = useState(null);
+  const [bearerService, setBearerService] = useState(null);
   const [logManager] = useState(new LogManager());
+
+  // Authentication mode ('sdk' or 'bearer')
+  const [authMode, setAuthMode] = useState('sdk');
 
   // Initialize security settings and environment detection
   useEffect(() => {
@@ -223,8 +261,17 @@ function App() {
   useEffect(() => {
     if (currentApiKey && currentApiKey.length > 10) {
       try {
+        // Initialize SDK service
         const service = new NilAIService(currentApiKey, selectedModel);
         setNilAIService(service);
+
+        // Initialize Bearer Token service
+        const bearer = new BearerTokenService({
+          bearerToken: 'Nillion2025',
+          baseURL: 'https://nilai-a779.nillion.network/v1',
+          model: selectedModel
+        });
+        setBearerService(bearer);
 
         // Log API key setup
         logManager.addLog({
@@ -379,7 +426,15 @@ function App() {
 
   // Handle chat message sending
   const handleSendMessage = useCallback(async (message) => {
-    if (!nilAIService || !isConnected) {
+    if (!isConnected) {
+      return;
+    }
+
+    // Check which service to use based on auth mode
+    if (authMode === 'sdk' && !nilAIService) {
+      return;
+    }
+    if (authMode === 'bearer' && !bearerService) {
       return;
     }
 
@@ -398,9 +453,10 @@ function App() {
     logManager.addLog({
       type: 'info',
       category: 'chat',
-      message: 'Sending chat message',
+      message: `Sending chat message (${authMode.toUpperCase()} mode)`,
       details: {
         messageId,
+        authMode,
         message: message.substring(0, 100) + (message.length > 100 ? '...' : ''),
         timestamp: userMessage.timestamp
       }
@@ -408,7 +464,15 @@ function App() {
 
     try {
       const startTime = Date.now();
-      const response = await nilAIService.sendMessage(message, chatHistory);
+
+      // Route to correct service based on auth mode
+      let response;
+      if (authMode === 'sdk') {
+        response = await nilAIService.sendMessage(message, chatHistory);
+      } else {
+        response = await bearerService.sendChatMessage(message, chatHistory);
+      }
+
       const responseTime = Date.now() - startTime;
 
       if (response.success) {
@@ -480,7 +544,7 @@ function App() {
     }
 
     setLogs([...logManager.getAllLogs()]);
-  }, [nilAIService, isConnected, chatHistory, logManager]);
+  }, [nilAIService, bearerService, authMode, isConnected, chatHistory, logManager]);
 
   // Handle clearing logs
   const handleClearLogs = useCallback(() => {
@@ -769,10 +833,20 @@ function App() {
 
           {activeTab === 'about' && <AboutSection />}
 
+          {activeTab === 'diagnostics' && (
+            <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
+              <DiagnosticPanel
+                apiKey={currentApiKey}
+                baseURL="https://nilai-a779.nillion.network/v1"
+                model={selectedModel}
+              />
+            </div>
+          )}
+
           {activeTab === 'main' && (
           <MainContent>
-            <LeftPanel>
-              <ApiKeySection>
+            <ApiSection logsCollapsed={isLogsCollapsed}>
+              <ApiKeyCard>
                 <ApiKeyManager
                   currentApiKey={currentApiKey}
                   onApiKeyChange={setCurrentApiKey}
@@ -780,29 +854,39 @@ function App() {
                   status={apiKeyStatus}
                   selectedModel={selectedModel}
                   onModelChange={handleModelChange}
+                  authMode={authMode}
+                  onAuthModeChange={setAuthMode}
                 />
-              </ApiKeySection>
+              </ApiKeyCard>
+            </ApiSection>
 
-              <ChatSection>
+            <ChatSection logsCollapsed={isLogsCollapsed}>
+              <ChatCard>
                 <ChatInterface
                   chatHistory={chatHistory}
                   onSendMessage={handleSendMessage}
                   onClearChat={handleClearChat}
                   isConnected={isConnected}
                   isLoading={apiKeyStatus === 'testing'}
+                  apiKey={currentApiKey}
+                  baseURL="https://nilai-a779.nillion.network/v1"
+                  model={selectedModel}
+                  authMode={authMode}
                 />
-              </ChatSection>
-            </LeftPanel>
+              </ChatCard>
+            </ChatSection>
 
-            <RightPanel>
+            <LogsSection isCollapsed={isLogsCollapsed}>
               <LogsContainer>
                 <LogsPanel
                   logs={logs}
                   onClearLogs={handleClearLogs}
                   onExportLogs={handleExportLogs}
+                  isCollapsed={isLogsCollapsed}
+                  onToggleCollapse={() => setIsLogsCollapsed(!isLogsCollapsed)}
                 />
               </LogsContainer>
-            </RightPanel>
+            </LogsSection>
           </MainContent>
           )}
 

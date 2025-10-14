@@ -1,0 +1,63 @@
+
+══════════════════════════════════════════════════════════════════════
+  NIL AI API DIAGNOSTIC REPORT
+══════════════════════════════════════════════════════════════════════
+Generated: 10/14/2025, 3:10:29 AM
+
+Configuration:
+  Base URL: https://nilai-a779.nillion.network/v1
+  Model: google/gemma-3-27b-it
+  API Key: Not provided
+  Bearer Token: Nillion2025
+
+──────────────────────────────────────────────────────────────────────
+DIAGNOSIS
+──────────────────────────────────────────────────────────────────────
+Scenario: API_KEY_ISSUE
+Severity: ERROR
+Description: Bearer token works but API key fails. This indicates an issue with your API key or subscription.
+
+──────────────────────────────────────────────────────────────────────
+TEST RESULTS SUMMARY
+──────────────────────────────────────────────────────────────────────
+
+SDK Authentication:
+  Status: SKIPPED (No API key provided)
+
+Bearer Token Authentication:
+  Models Endpoint: SUCCESS
+
+Endpoint Availability:
+  /models: UNAVAILABLE
+  /health: UNAVAILABLE
+  /chat/completions: UNAVAILABLE
+
+Service Health:
+  Status: UNHEALTHY
+
+Usage Statistics:
+  Status: UNAVAILABLE
+
+──────────────────────────────────────────────────────────────────────
+RECOMMENDATIONS
+──────────────────────────────────────────────────────────────────────
+
+1. [HIGH] undefined
+   Ensure your API key is exactly 64 hexadecimal characters.
+   Action: Verify API key format
+
+2. [HIGH] undefined
+   Visit https://subscription.nillion.com to verify your subscription is active.
+   Action: Check subscription status
+
+3. [MEDIUM] undefined
+   Ensure you copied the key correctly from the subscription portal.
+   Action: Verify API key source
+
+4. [MEDIUM] undefined
+   Run: npm install @nillion/nilai-ts
+   Action: Check SDK installation
+
+══════════════════════════════════════════════════════════════════════
+End of Report
+══════════════════════════════════════════════════════════════════════

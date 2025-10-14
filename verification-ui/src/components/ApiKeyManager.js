@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Eye, EyeOff, Key, CheckCircle, XCircle, AlertCircle, TestTube, Copy, History } from 'lucide-react';
+import { Eye, EyeOff, Key, CheckCircle, XCircle, AlertCircle, TestTube, Copy, History, Shield } from 'lucide-react';
 import { NilAIService } from '../services/nilAIService';
 import { ModelSelector } from './ModelSelector';
 
@@ -195,6 +195,53 @@ const HistoryItem = styled.div`
   }
 `;
 
+const AuthModeToggle = styled.div`
+  display: flex;
+  gap: 0;
+  background: ${props => props.theme.colors.tertiary};
+  border: 1px solid ${props => props.theme.colors.border};
+  border-radius: 6px;
+  overflow: hidden;
+`;
+
+const AuthModeButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  flex: 1;
+  background: ${props => props.active ? `linear-gradient(135deg, ${props.theme.colors.accent} 0%, ${props.theme.colors.accentBlue} 100%)` : 'transparent'};
+  border: none;
+  color: ${props => props.active ? '#000' : props.theme.colors.textSecondary};
+  font-size: 0.875rem;
+  font-weight: ${props => props.active ? '600' : '400'};
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: ${props => props.active ? `linear-gradient(135deg, ${props.theme.colors.accent} 0%, ${props.theme.colors.accentBlue} 100%)` : props.theme.colors.tertiary};
+    color: ${props => props.active ? '#000' : props.theme.colors.accent};
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+`;
+
+const AuthModeLabel = styled.div`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: ${props => props.theme.colors.textSecondary};
+  margin-bottom: 8px;
+`;
+
 const StatusIcon = ({ status }) => {
   switch (status) {
     case 'connected':
@@ -208,7 +255,7 @@ const StatusIcon = ({ status }) => {
   }
 };
 
-function ApiKeyManager({ currentApiKey, onApiKeyChange, onValidateKey, status, selectedModel, onModelChange }) {
+function ApiKeyManager({ currentApiKey, onApiKeyChange, onValidateKey, status, selectedModel, onModelChange, authMode, onAuthModeChange }) {
   const [showApiKey, setShowApiKey] = useState(false);
   const [keyHistory, setKeyHistory] = useState([]);
   const [validationMessage, setValidationMessage] = useState('');
@@ -329,6 +376,30 @@ function ApiKeyManager({ currentApiKey, onApiKeyChange, onValidateKey, status, s
         selectedModel={selectedModel}
         onModelChange={onModelChange}
       />
+
+      <InputGroup>
+        <AuthModeLabel>Authentication Mode</AuthModeLabel>
+        <AuthModeToggle>
+          <AuthModeButton
+            active={authMode === 'sdk'}
+            onClick={() => onAuthModeChange('sdk')}
+            disabled={status === 'testing'}
+            title="Use SDK Authentication (Full functionality)"
+          >
+            <Key />
+            SDK Auth
+          </AuthModeButton>
+          <AuthModeButton
+            active={authMode === 'bearer'}
+            onClick={() => onAuthModeChange('bearer')}
+            disabled={status === 'testing'}
+            title="Use Bearer Token (Diagnostic testing)"
+          >
+            <Shield />
+            Bearer Token
+          </AuthModeButton>
+        </AuthModeToggle>
+      </InputGroup>
 
       <ValidationSection>
         <ValidationResult status={status}>

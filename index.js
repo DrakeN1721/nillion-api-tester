@@ -1,32 +1,106 @@
 #!/usr/bin/env node
 
-import { NilaiOpenAIClient, NilAuthInstance } from '@nillion/nilai-ts';
+import { AuthManager, AuthMode } from './auth/AuthManager.js';
 
-// Configuration
-const BASE_URL = process.env.NIL_BASE_URL || 'https://nilai-a779.nillion.network/v1/';
-const API_KEY = process.env.NIL_API_KEY || process.argv[2];
-const MODEL = process.env.NIL_MODEL || 'google/gemma-3-27b-it';
+// Parse command line arguments
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const config = {
+    authMode: AuthMode.SDK, // Default to SDK
+    apiKey: null,
+    bearerToken: null,
+    model: null,
+    baseURL: null,
+    compare: false
+  };
 
-// Validate API key is provided
-if (!API_KEY) {
-  console.error('❌ Error: No API key provided');
-  console.error('');
-  console.error('Please provide your Nil AI API key in one of these ways:');
-  console.error('  1. Environment variable: export NIL_API_KEY="your-api-key"');
-  console.error('  2. Command line argument: node index.js your-api-key');
-  console.error('  3. Create .env file: NIL_API_KEY=your-api-key');
-  console.error('');
-  console.error('Get your API key from: https://docs.nillion.com');
-  process.exit(1);
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+
+    if (arg === '--auth-mode' || arg === '-m') {
+      config.authMode = args[++i];
+    } else if (arg === '--api-key' || arg === '-k') {
+      config.apiKey = args[++i];
+    } else if (arg === '--bearer-token' || arg === '-t') {
+      config.bearerToken = args[++i];
+    } else if (arg === '--model') {
+      config.model = args[++i];
+    } else if (arg === '--base-url') {
+      config.baseURL = args[++i];
+    } else if (arg === '--compare' || arg === '-c') {
+      config.compare = true;
+    } else if (arg === '--help' || arg === '-h') {
+      showHelp();
+      process.exit(0);
+    } else if (!arg.startsWith('--') && !config.apiKey) {
+      // First non-flag argument is treated as API key for backwards compatibility
+      config.apiKey = arg;
+    }
+  }
+
+  // Get from environment variables if not provided
+  config.apiKey = config.apiKey || process.env.NIL_API_KEY;
+  config.bearerToken = config.bearerToken || process.env.NIL_BEARER_TOKEN || 'Nillion2025';
+  config.model = config.model || process.env.NIL_MODEL || 'google/gemma-3-27b-it';
+  config.baseURL = config.baseURL || process.env.NIL_BASE_URL;
+
+  return config;
 }
 
-// Initialize Nillion client
-function createNilaiClient() {
-  return new NilaiOpenAIClient({
-    baseURL: BASE_URL,
-    apiKey: API_KEY,
-    nilauthInstance: NilAuthInstance.SANDBOX,
-  });
+function showHelp() {
+  console.log(`
+╔═══════════════════════════════════════════════════════════╗
+║           Nil AI API Tester - Dual Authentication         ║
+╚═══════════════════════════════════════════════════════════╝
+
+USAGE:
+  node index.js [OPTIONS] [API_KEY]
+
+OPTIONS:
+  -m, --auth-mode <mode>    Authentication mode: 'sdk' or 'bearer'
+                            Default: sdk (recommended)
+
+  -k, --api-key <key>       API key for SDK authentication
+  -t, --bearer-token <token> Bearer token for bearer authentication
+                            Default: Nillion2025 (testing)
+
+  --model <model>           Model to use
+                            Default: google/gemma-3-27b-it
+
+  --base-url <url>          Base URL for API
+                            Default: https://nilai-a779.nillion.network/v1/
+
+  -c, --compare             Compare both authentication methods side-by-side
+
+  -h, --help                Show this help message
+
+EXAMPLES:
+  # Test with SDK authentication (recommended)
+  node index.js your-api-key
+  node index.js --auth-mode sdk --api-key your-api-key
+
+  # Test with Bearer token (deprecated - testing only)
+  node index.js --auth-mode bearer --bearer-token Nillion2025
+
+  # Compare both methods side-by-side
+  node index.js --compare --api-key your-api-key --bearer-token Nillion2025
+
+  # Using environment variables
+  export NIL_API_KEY=your-api-key
+  node index.js
+
+AUTHENTICATION MODES:
+  ✅ SDK (Recommended)
+     Uses official @nillion/nilai-ts SDK with NUC token generation
+     This is the ONLY officially supported method
+
+  ⚠️  Bearer Token (Deprecated - Testing Only)
+     Uses raw HTTP with Authorization: Bearer header
+     Expected to FAIL with 401 Unauthorized
+     Provided for testing and comparison purposes only
+
+For more information, see: docs/AUTH-METHODS.md
+`);
 }
 
 // Colors for terminal output
@@ -37,7 +111,8 @@ const colors = {
   green: '\x1b[32m',
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
-  cyan: '\x1b[36m'
+  cyan: '\x1b[36m',
+  magenta: '\x1b[35m'
 };
 
 function log(message, color = colors.reset) {
@@ -45,9 +120,9 @@ function log(message, color = colors.reset) {
 }
 
 function logHeader(message) {
-  console.log('\n' + '='.repeat(50));
+  console.log('\n' + '='.repeat(60));
   log(message, colors.bright + colors.cyan);
-  console.log('='.repeat(50));
+  console.log('='.repeat(60));
 }
 
 function logSuccess(message) {
@@ -66,170 +141,222 @@ function logWarning(message) {
   log(`⚠ ${message}`, colors.yellow);
 }
 
-async function queryModels() {
-  logHeader('Testing /v1/models endpoint (via Nillion SDK)');
+async function testAuthentication(authProvider, modeName) {
+  logHeader(`Testing ${modeName} Authentication`);
 
-  try {
-    logInfo('Querying available models...');
-    logInfo('Using NilaiOpenAIClient with SANDBOX authentication...');
+  const info = authProvider.getInfo();
 
-    const client = createNilaiClient();
+  // Display provider information
+  logInfo(`Mode: ${info.name}`);
+  logInfo(`Status: ${info.status}`);
+  logInfo(`Description: ${info.description}`);
 
-    // Note: The SDK might not have a direct models() method
-    // Let's try to use the client to list models if available
-    try {
-      // Try to access models if the method exists
-      if (typeof client.models !== 'undefined') {
-        const models = await client.models.list();
-        logSuccess('Models endpoint is working via SDK!');
-
-        console.log('\nAvailable models:');
-        if (models.data && Array.isArray(models.data)) {
-          models.data.forEach((model, index) => {
-            console.log(`${index + 1}. ${model.id || model.name || JSON.stringify(model)}`);
-          });
-        } else {
-          console.log('Models response:', JSON.stringify(models, null, 2));
-        }
-        return true;
-      } else {
-        logWarning('SDK does not expose models endpoint directly');
-        logInfo('Proceeding to test chat completions endpoint...');
-        return true; // Skip models test if not available in SDK
-      }
-    } catch (sdkError) {
-      logWarning(`SDK models access failed: ${sdkError.message}`);
-      logInfo('This might be normal if models endpoint is not exposed in SDK');
-      return true; // Continue with chat test
-    }
-
-  } catch (error) {
-    logError(`Failed to initialize Nillion client: ${error.message}`);
-
-    // Provide troubleshooting tips
-    console.log('\nTroubleshooting tips:');
-    logWarning('1. Verify the API key is correct and active');
-    logWarning('2. Check if the base URL is correct');
-    logWarning('3. Ensure your account has proper permissions');
-    logWarning('4. Verify SDK installation and compatibility');
-
-    return false;
+  if (info.deprecated) {
+    logWarning('⚠️  This authentication method is DEPRECATED');
+    logWarning('   Expected result: 401 Unauthorized (Authentication Failed)');
   }
-}
 
-async function testChatCompletion() {
-  logHeader('Testing /v1/chat/completions endpoint (via Nillion SDK)');
+  console.log('\nConfiguration:');
+  Object.entries(info.config).forEach(([key, value]) => {
+    console.log(`  ${key}: ${value}`);
+  });
 
-  try {
-    logInfo(`Testing with model: ${MODEL}`);
-    logInfo('Using NilaiOpenAIClient with SANDBOX authentication...');
+  // Test connection
+  console.log('\n📡 Testing connection...');
+  const result = await authProvider.testConnection();
 
-    const client = createNilaiClient();
+  console.log('\n' + '─'.repeat(60));
 
-    const payload = {
-      model: MODEL,
-      messages: [
-        {
-          role: 'user',
-          content: 'Hello! This is a test message to verify the API is working. Please respond with a short confirmation.'
-        }
-      ],
-      max_tokens: 100
-    };
+  if (result.success) {
+    logSuccess(`${modeName} authentication SUCCESSFUL!`);
+    console.log(`\nResponse: "${result.response}"`);
+    console.log(`\nDetails:`);
+    console.log(`  Model: ${result.model}`);
+    console.log(`  Response Time: ${result.responseTime}ms`);
+    console.log(`  Tokens Used: ${result.usage ? JSON.stringify(result.usage) : 'N/A'}`);
 
-    logInfo('Sending chat completion request via SDK...');
-
-    const response = await client.chat.completions.create(payload);
-
-    logSuccess('Chat completions endpoint is working via SDK!');
-
-    if (response.choices && response.choices[0] && response.choices[0].message) {
-      console.log('\nAI Response:');
-      log(`"${response.choices[0].message.content}"`, colors.cyan);
-
-      // Show additional response details
-      console.log('\nResponse details:');
-      console.log(`- Model: ${response.model || 'N/A'}`);
-      console.log(`- Usage tokens: ${response.usage ? JSON.stringify(response.usage) : 'N/A'}`);
-    } else {
-      console.log('\nFull response:');
-      console.log(JSON.stringify(response, null, 2));
+    if (result.warning) {
+      logWarning(`\n⚠️  ${result.warning}`);
     }
 
     return true;
-  } catch (error) {
-    logError(`Failed to test chat completion: ${error.message}`);
+  } else {
+    logError(`${modeName} authentication FAILED`);
+    console.log(`\nError: ${result.error}`);
 
-    // Show full error details for debugging
-    if (error.response) {
-      logError(`Response status: ${error.response.status}`);
-      logError(`Response data: ${JSON.stringify(error.response.data, null, 2)}`);
+    if (result.expectedFailure) {
+      logInfo('✓ This failure was expected - bearer token authentication is deprecated');
     }
 
-    // Provide troubleshooting tips
-    console.log('\nTroubleshooting tips:');
-    logWarning('1. Check if the model name is correct');
-    logWarning('2. Verify API key permissions for chat completions');
-    logWarning('3. Ensure proper SDK authentication');
-    logWarning('4. Check if SANDBOX instance is correct');
+    if (result.note) {
+      logInfo(`Note: ${result.note}`);
+    }
+
+    if (result.details) {
+      console.log(`\nDetails:`);
+      Object.entries(result.details).forEach(([key, value]) => {
+        console.log(`  ${key}: ${value}`);
+      });
+    }
 
     return false;
   }
 }
 
-async function testApiKey() {
-  logHeader('Nil AI API Key Test');
+async function compareAuthMethods(config) {
+  logHeader('Authentication Methods Comparison');
 
-  logInfo(`Base URL: ${BASE_URL}`);
-  logInfo(`API Key: ${API_KEY.substring(0, 8)}...${API_KEY.substring(API_KEY.length - 8)}`);
-  logInfo(`Test Model: ${MODEL}`);
+  console.log('This will test both authentication methods side-by-side:\n');
+  console.log('  1. SDK Authentication (Official - Expected to work)');
+  console.log('  2. Bearer Token Authentication (Deprecated - Expected to fail)\n');
 
-  let allTestsPassed = true;
-
-  // Test 1: Query models endpoint
-  const modelsTest = await queryModels();
-  allTestsPassed = allTestsPassed && modelsTest;
-
-  // Test 2: Test chat completions
-  const chatTest = await testChatCompletion();
-  allTestsPassed = allTestsPassed && chatTest;
-
-  // Summary
-  logHeader('Test Results');
-  if (allTestsPassed) {
-    logSuccess('All tests passed! Your API key is working correctly.');
-  } else {
-    logError('Some tests failed. Please check the API key and configuration.');
-  }
-
-  return allTestsPassed;
-}
-
-// Main execution
-async function main() {
-  // Show usage if no API key is provided
-  if (!API_KEY || API_KEY.length < 10) {
-    logHeader('Nil AI API Tester');
-    console.log('Usage:');
-    console.log('  node index.js [API_KEY]');
+  if (!config.apiKey) {
+    logError('API key is required for comparison mode');
+    console.log('\nProvide an API key using:');
+    console.log('  --api-key your-key');
     console.log('  or set NIL_API_KEY environment variable');
-    console.log('\nEnvironment variables:');
-    console.log('  NIL_API_KEY - Your Nil AI API key');
-    console.log('  NIL_BASE_URL - Base URL (default: https://nilai-a779.nillion.network/v1)');
-    console.log('  NIL_MODEL - Model to test (default: google/gemma-3-27b-it)');
-    console.log('\nExample:');
-    console.log('  node index.js your-api-key-here');
-    console.log('  NIL_API_KEY=your-key node index.js');
-    return;
+    process.exit(1);
   }
 
   try {
-    await testApiKey();
+    const results = await AuthManager.compareAuthMethods({
+      apiKey: config.apiKey,
+      bearerToken: config.bearerToken,
+      model: config.model,
+      baseURL: config.baseURL
+    });
+
+    // Display results
+    logHeader('Comparison Results');
+
+    console.log('\n📊 SDK Authentication:');
+    console.log('─'.repeat(60));
+    if (results.comparison.sdk.success) {
+      logSuccess('✅ WORKING');
+      console.log(`Response: "${results.comparison.sdk.response}"`);
+      console.log(`Response Time: ${results.comparison.sdk.responseTime}ms`);
+    } else {
+      logError('❌ FAILED');
+      console.log(`Error: ${results.comparison.sdk.error}`);
+    }
+
+    console.log('\n📊 Bearer Token Authentication:');
+    console.log('─'.repeat(60));
+    if (results.comparison.bearer.success) {
+      logWarning('⚠️  WORKING (Unexpected!)');
+      console.log(`Response: "${results.comparison.bearer.response}"`);
+      console.log(`Response Time: ${results.comparison.bearer.responseTime}ms`);
+    } else {
+      logInfo('✓ FAILED (As Expected)');
+      console.log(`Error: ${results.comparison.bearer.error}`);
+    }
+
+    // Show recommendation
+    logHeader('Recommendation');
+    console.log(`\n${results.recommendation}\n`);
+
+    // Summary table
+    console.log('\n📋 Summary:');
+    console.log('┌────────────────┬──────────┬─────────────────┐');
+    console.log('│ Method         │ Status   │ Response Time   │');
+    console.log('├────────────────┼──────────┼─────────────────┤');
+    console.log(`│ SDK            │ ${results.comparison.sdk.success ? '✅ PASS  ' : '❌ FAIL  '} │ ${results.comparison.sdk.responseTime ? results.comparison.sdk.responseTime + 'ms' : 'N/A'} `.padEnd(17) + '│');
+    console.log(`│ Bearer Token   │ ${results.comparison.bearer.success ? '⚠️  PASS  ' : '✓ FAIL  '} │ ${results.comparison.bearer.responseTime ? results.comparison.bearer.responseTime + 'ms' : 'N/A'} `.padEnd(17) + '│');
+    console.log('└────────────────┴──────────┴─────────────────┘\n');
+
   } catch (error) {
-    logError(`Unexpected error: ${error.message}`);
+    logError(`Comparison failed: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+async function main() {
+  const config = parseArgs();
+
+  // Show header
+  console.log(`${colors.bright}${colors.cyan}
+╔═══════════════════════════════════════════════════════════╗
+║              🤖 Nil AI API Tester v2.0                    ║
+║              Dual Authentication Support                  ║
+╚═══════════════════════════════════════════════════════════╝${colors.reset}`);
+
+  // Comparison mode
+  if (config.compare) {
+    await compareAuthMethods(config);
+    return;
+  }
+
+  // Determine which authentication method to use
+  let authProvider;
+  let credential;
+
+  if (config.authMode === AuthMode.SDK) {
+    if (!config.apiKey) {
+      logError('API key is required for SDK authentication');
+      console.log('\nProvide an API key using:');
+      console.log('  node index.js your-api-key');
+      console.log('  or use --api-key flag');
+      console.log('  or set NIL_API_KEY environment variable');
+      console.log('\nFor help: node index.js --help');
+      process.exit(1);
+    }
+    credential = { apiKey: config.apiKey, model: config.model, baseURL: config.baseURL };
+  } else if (config.authMode === AuthMode.BEARER) {
+    if (!config.bearerToken) {
+      logError('Bearer token is required for bearer authentication');
+      console.log('\nProvide a bearer token using:');
+      console.log('  --bearer-token your-token');
+      console.log('  or set NIL_BEARER_TOKEN environment variable');
+      process.exit(1);
+    }
+    credential = { bearerToken: config.bearerToken, model: config.model, baseURL: config.baseURL };
+  } else {
+    logError(`Invalid authentication mode: ${config.authMode}`);
+    console.log('\nValid modes: sdk, bearer');
+    console.log('For help: node index.js --help');
+    process.exit(1);
+  }
+
+  try {
+    // Create authentication provider
+    authProvider = AuthManager.create(config.authMode, credential);
+
+    // Test authentication
+    const success = await testAuthentication(authProvider, config.authMode.toUpperCase());
+
+    // Final summary
+    logHeader('Test Summary');
+    if (success) {
+      logSuccess('✅ All tests passed! Authentication is working.');
+    } else {
+      logError('❌ Authentication test failed.');
+
+      if (config.authMode === AuthMode.BEARER) {
+        console.log('\n💡 This is expected behavior:');
+        console.log('   Bearer token authentication is deprecated and no longer supported.');
+        console.log('   Please use SDK authentication instead:');
+        console.log('   node index.js --auth-mode sdk --api-key your-api-key');
+      } else {
+        console.log('\n💡 Troubleshooting tips:');
+        console.log('   1. Verify your API key is valid');
+        console.log('   2. Check your internet connection');
+        console.log('   3. Ensure @nillion/nilai-ts SDK is installed');
+        console.log('   4. Try: npm install @nillion/nilai-ts');
+      }
+    }
+
+    console.log('\n' + '═'.repeat(60) + '\n');
+
+  } catch (error) {
+    logError(`Failed to initialize authentication: ${error.message}`);
+    console.log('\nFor help: node index.js --help');
     process.exit(1);
   }
 }
 
 // Run the program
-main();
+main().catch(error => {
+  logError(`Unexpected error: ${error.message}`);
+  console.error(error);
+  process.exit(1);
+});

@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
-import { Coffee, Copy, Check, Heart, ExternalLink } from 'lucide-react';
+import { Coffee, Copy, Check, Heart, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 
 const TipJarContainer = styled.div`
   background: ${props => props.theme.colors.secondary};
@@ -19,17 +19,60 @@ const TipHeader = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: ${props => props.isMinimized ? '0' : '16px'};
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    opacity: 0.9;
+  }
 
   h3 {
     color: #00ff88;
     margin: 0;
     font-size: 18px;
     font-weight: 600;
+    flex: 1;
   }
 
   .heart {
     color: #ff6b6b;
+  }
+`;
+
+const ToggleButton = styled.button`
+  background: none;
+  border: none;
+  color: ${props => props.theme.colors.textMuted};
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: ${props => props.theme.colors.accent};
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+`;
+
+const TipContent = styled.div`
+  display: ${props => props.isMinimized ? 'none' : 'block'};
+  animation: ${props => props.isMinimized ? 'none' : 'fadeIn 0.3s ease'};
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 `;
 
@@ -163,6 +206,19 @@ const DeveloperCredits = styled.div`
 
 export const TipJar = () => {
   const [copiedAddress, setCopiedAddress] = useState(null);
+  const [isMinimized, setIsMinimized] = useState(() => {
+    // Load minimized state from localStorage
+    const saved = localStorage.getItem('tipjar-minimized');
+    return saved === 'true';
+  });
+
+  const toggleMinimized = useCallback(() => {
+    setIsMinimized(prev => {
+      const newState = !prev;
+      localStorage.setItem('tipjar-minimized', newState);
+      return newState;
+    });
+  }, []);
 
   const cryptoAddresses = [
     {
@@ -203,15 +259,19 @@ export const TipJar = () => {
 
   return (
     <TipJarContainer>
-      <TipHeader>
+      <TipHeader isMinimized={isMinimized} onClick={toggleMinimized}>
         <Coffee size={20} color="#00ff88" />
         <h3>Support This Project</h3>
         <Heart size={16} className="heart" />
+        <ToggleButton>
+          {isMinimized ? <ChevronDown /> : <ChevronUp />}
+        </ToggleButton>
       </TipHeader>
 
-      <TipDescription>
-        <span className="highlight">Free tool</span> that saves debugging time? Support development!
-      </TipDescription>
+      <TipContent isMinimized={isMinimized}>
+        <TipDescription>
+          <span className="highlight">Free tool</span> that saves debugging time? Support development!
+        </TipDescription>
 
       <WalletGrid>
         {cryptoAddresses.map((crypto) => (
@@ -253,11 +313,12 @@ export const TipJar = () => {
         💡 This project is <span className="open-source">100% open source</span> and will always be free. Tips help fund development and server costs.
       </FooterNote>
 
-      <DeveloperCredits>
-        Developed by <a href="https://x.com/draken1721" target="_blank" rel="noopener noreferrer">DrakeN</a>
-        <span className="separator">•</span>
-        <a href="https://draken.space" target="_blank" rel="noopener noreferrer">DrakeN.Space</a>
-      </DeveloperCredits>
+        <DeveloperCredits>
+          Developed by <a href="https://x.com/draken1721" target="_blank" rel="noopener noreferrer">DrakeN</a>
+          <span className="separator">•</span>
+          <a href="https://draken.space" target="_blank" rel="noopener noreferrer">DrakeN.Space</a>
+        </DeveloperCredits>
+      </TipContent>
     </TipJarContainer>
   );
 };

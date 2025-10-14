@@ -1,0 +1,129 @@
+{
+  "timestamp": "2025-10-14T09:09:37.792Z",
+  "config": {
+    "hasApiKey": false,
+    "hasBearerToken": true,
+    "model": "google/gemma-3-27b-it",
+    "baseURL": "https://nilai-a779.nillion.network/v1"
+  },
+  "tests": {
+    "sdk": {
+      "skipped": true,
+      "reason": "No API key provided"
+    },
+    "bearer": {
+      "models": {
+        "success": true,
+        "result": {
+          "success": true,
+          "mode": "Bearer Token",
+          "method": "Raw HTTP with Authorization: Bearer header",
+          "status": 200,
+          "response": "Bearer token authentication works! Found 1 model(s): google/gemma-3-27b-it",
+          "model": "N/A (tested /models endpoint)",
+          "models": [
+            {
+              "id": "google/gemma-3-27b-it",
+              "name": "google/gemma-3-27b-it",
+              "version": "1.0",
+              "description": "",
+              "author": "",
+              "license": "Apache 2.0",
+              "source": "https://huggingface.co/google/gemma-3-27b-it",
+              "supported_features": [
+                "chat_completion"
+              ],
+              "tool_support": false,
+              "multimodal_support": true
+            }
+          ],
+          "responseTime": 712,
+          "timestamp": "2025-10-14T09:09:38.511Z",
+          "note": "Bearer token is functional for read-only operations (models, health, usage)",
+          "warning": "Chat completions not supported with this token - returns 500 error",
+          "details": {
+            "baseURL": "https://nilai-a779.nillion.network/v1",
+            "endpoint": "/models",
+            "bearerToken": "Nillion2...",
+            "httpStatus": 200,
+            "modelsFound": 1
+          }
+        },
+        "timestamp": "2025-10-14T09:09:38.511Z"
+      },
+      "chatCompletions": {
+        "success": false,
+        "result": {
+          "success": false,
+          "mode": "Bearer Token",
+          "status": 500,
+          "error": "Internal Server Error",
+          "expectedFailure": true,
+          "responseTime": 2069,
+          "timestamp": "2025-10-14T09:09:40.581Z"
+        },
+        "expectedFailure": true,
+        "timestamp": "2025-10-14T09:09:40.581Z"
+      }
+    },
+    "endpoints": {
+      "/models": {
+        "method": "GET",
+        "status": 404,
+        "ok": false,
+        "available": false
+      },
+      "/health": {
+        "method": "GET",
+        "status": 404,
+        "ok": false,
+        "available": false
+      },
+      "/chat/completions": {
+        "method": "POST",
+        "status": 404,
+        "ok": false,
+        "available": false
+      }
+    },
+    "health": {
+      "success": false,
+      "status": 404
+    },
+    "usage": {
+      "success": false,
+      "status": 404
+    }
+  },
+  "diagnosis": {
+    "code": "API_KEY_ISSUE",
+    "severity": "error",
+    "title": "API Key Authentication Failed",
+    "description": "Bearer token works but API key fails. This indicates an issue with your API key or subscription."
+  },
+  "recommendations": [
+    {
+      "priority": "high",
+      "action": "Verify API key format",
+      "description": "Ensure your API key is exactly 64 hexadecimal characters.",
+      "check": "✗ Length incorrect"
+    },
+    {
+      "priority": "high",
+      "action": "Check subscription status",
+      "description": "Visit https://subscription.nillion.com to verify your subscription is active.",
+      "url": "https://subscription.nillion.com"
+    },
+    {
+      "priority": "medium",
+      "action": "Verify API key source",
+      "description": "Ensure you copied the key correctly from the subscription portal."
+    },
+    {
+      "priority": "medium",
+      "action": "Check SDK installation",
+      "description": "Run: npm install @nillion/nilai-ts",
+      "command": "npm install @nillion/nilai-ts"
+    }
+  ]
+}

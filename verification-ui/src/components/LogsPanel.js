@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import {
   ScrollText, Download, Copy, Trash2, Search, Filter,
   CheckCircle, XCircle, AlertTriangle, Info,
-  ChevronDown, ChevronRight, Eye, Code
+  ChevronDown, ChevronRight, Eye, Code, ChevronLeft, ChevronsLeft
 } from 'lucide-react';
 
 const Container = styled.div`
@@ -11,6 +11,86 @@ const Container = styled.div`
   flex-direction: column;
   height: 100%;
   background: ${props => props.theme.colors.primary};
+  width: ${props => props.isCollapsed ? '60px' : '100%'};
+  transition: width 0.3s ease;
+  position: relative;
+  overflow: ${props => props.isCollapsed ? 'hidden' : 'visible'};
+`;
+
+const CollapseButton = styled.button`
+  position: absolute;
+  top: 16px;
+  left: ${props => props.isCollapsed ? '50%' : '16px'};
+  transform: ${props => props.isCollapsed ? 'translateX(-50%)' : 'none'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: ${props => props.theme.colors.tertiary};
+  border: 1px solid ${props => props.theme.colors.border};
+  border-radius: 6px;
+  color: ${props => props.theme.colors.accent};
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+
+  &:hover {
+    background: ${props => props.theme.colors.accent};
+    color: #000;
+    transform: ${props => props.isCollapsed ? 'translateX(-50%) translateY(-2px)' : 'translateY(-2px)'};
+    box-shadow: ${props => props.theme.shadows.md};
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+`;
+
+const CollapsedSidebar = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 60px;
+  gap: 16px;
+`;
+
+const CollapsedIcon = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: ${props => props.theme.colors.tertiary};
+  color: ${props => props.theme.colors.textMuted};
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${props => props.theme.colors.accent};
+    color: #000;
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+`;
+
+const CollapsedCount = styled.div`
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: ${props => props.theme.colors.accent};
+  color: #000;
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
 `;
 
 const LogsHeader = styled.div`
@@ -348,11 +428,26 @@ const LogTypeIcon = ({ type }) => {
   }
 };
 
-function LogsPanel({ logs, onClearLogs, onExportLogs }) {
+function LogsPanel({ logs, onClearLogs, onExportLogs, isCollapsed, onToggleCollapse }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [expandedLogs, setExpandedLogs] = useState(new Set());
   const logsEndRef = useRef(null);
+
+  // Load collapse state from localStorage
+  useEffect(() => {
+    const savedCollapseState = localStorage.getItem('logs-panel-collapsed');
+    if (savedCollapseState !== null && onToggleCollapse && isCollapsed === undefined) {
+      onToggleCollapse(savedCollapseState === 'true');
+    }
+  }, []);
+
+  // Save collapse state to localStorage
+  useEffect(() => {
+    if (isCollapsed !== undefined) {
+      localStorage.setItem('logs-panel-collapsed', isCollapsed);
+    }
+  }, [isCollapsed]);
 
   // Auto-scroll disabled - let users control their own scrolling
   // useEffect(() => {
@@ -411,8 +506,56 @@ function LogsPanel({ logs, onClearLogs, onExportLogs }) {
 
   const logCounts = getLogCounts();
 
+  // If collapsed, show minimal sidebar
+  if (isCollapsed) {
+    return (
+      <Container isCollapsed={isCollapsed}>
+        <CollapseButton
+          onClick={onToggleCollapse}
+          isCollapsed={isCollapsed}
+          title="Expand logs panel (Ctrl/Cmd + L)"
+        >
+          <ChevronLeft />
+        </CollapseButton>
+
+        <CollapsedSidebar>
+          <CollapsedIcon
+            onClick={onToggleCollapse}
+            title="Expand logs panel"
+            style={{ position: 'relative' }}
+          >
+            <ScrollText />
+            {logs.length > 0 && <CollapsedCount>{logs.length}</CollapsedCount>}
+          </CollapsedIcon>
+
+          {logCounts.error > 0 && (
+            <CollapsedIcon title={`${logCounts.error} errors`} style={{ position: 'relative' }}>
+              <XCircle />
+              <CollapsedCount>{logCounts.error}</CollapsedCount>
+            </CollapsedIcon>
+          )}
+
+          {logCounts.success > 0 && (
+            <CollapsedIcon title={`${logCounts.success} successful`} style={{ position: 'relative' }}>
+              <CheckCircle />
+              <CollapsedCount>{logCounts.success}</CollapsedCount>
+            </CollapsedIcon>
+          )}
+        </CollapsedSidebar>
+      </Container>
+    );
+  }
+
   return (
-    <Container>
+    <Container isCollapsed={isCollapsed}>
+      <CollapseButton
+        onClick={onToggleCollapse}
+        isCollapsed={isCollapsed}
+        title="Collapse logs panel (Ctrl/Cmd + L)"
+      >
+        <ChevronsLeft />
+      </CollapseButton>
+
       <LogsHeader>
         <HeaderTop>
           <HeaderTitle>

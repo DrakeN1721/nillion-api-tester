@@ -81,9 +81,21 @@ Show your AI assistant **definitive evidence** so it focuses on the real problem
 ### 🖥️ Beautiful Desktop UI
 - **Modern Dark Theme**: Cyberpunk-inspired design with cyan accents
 - **Responsive Layout**: Works on various screen sizes
-- **Tab-Based Navigation**: Chat, Logs, and Reports in organized tabs
+- **Tab-Based Navigation**: Chat, Logs, Diagnostics, and Reports in organized tabs
 - **Real-Time Status**: Connection indicators and rate limit counters
 - **Welcome Splash**: Guided onboarding for first-time users
+
+### 🔬 Comprehensive Diagnostic System
+- **Automated Testing**: One-click diagnostics for API key issues
+- **Dual Authentication**: Compare SDK vs Bearer Token authentication
+- **Intelligent Diagnosis**: Identifies exact failure points with 6 diagnostic scenarios
+- **Prioritized Recommendations**: Color-coded action items (Critical, High, Medium, Info)
+- **CLI Tool**: Command-line diagnostic tool with JSON export
+- **Visual Reports**: Browser-based diagnostic panel in Electron app
+- **Bearer Token Research**: Complete analysis of "Nillion2025" token functionality
+- **Export Capabilities**: Save diagnostic reports for troubleshooting
+
+**See [docs/DIAGNOSTIC-SYSTEM.md](docs/DIAGNOSTIC-SYSTEM.md) for complete documentation.**
 
 ---
 
@@ -156,8 +168,9 @@ The application will open in your default browser at `http://localhost:3000`
 
 #### Option 3: CLI Tools
 
+**Basic Testing:**
 ```bash
-# Test API connection
+# Test API connection with SDK (default)
 node index.js your-api-key
 
 # Or use environment variable
@@ -167,6 +180,49 @@ node index.js
 # Interactive chat
 node chat.js
 ```
+
+**Advanced Testing (v2.0):**
+```bash
+# Test specific authentication mode
+node index.js --auth-mode sdk --api-key your-key      # SDK (works)
+node index.js --auth-mode bearer --bearer-token Nillion2025  # Bearer (fails)
+
+# Compare both methods side-by-side
+node index.js --compare --api-key your-key --bearer-token Nillion2025
+
+# Automated comparison with detailed report
+node testing/authComparison.js --api-key your-key --output results.json
+
+# Get help
+node index.js --help
+```
+
+**🔬 Diagnostic Tools (v2.0):**
+```bash
+# Run comprehensive diagnostics with your API key
+node testing/diagnosticTool.js YOUR_API_KEY
+
+# Test bearer token only (no API key required)
+node testing/diagnosticTool.js
+
+# Save diagnostic reports to file
+node testing/diagnosticTool.js YOUR_API_KEY --save
+
+# Export as JSON
+node testing/diagnosticTool.js YOUR_API_KEY --json
+
+# Full diagnostic with all options
+node testing/diagnosticTool.js YOUR_API_KEY \
+  --save \
+  --bearer-token Nillion2025 \
+  --base-url https://nilai-a779.nillion.network/v1 \
+  --model google/gemma-3-27b-it
+
+# Get diagnostic help
+node testing/diagnosticTool.js --help
+```
+
+Reports are automatically saved to `diagnostic-reports/` directory.
 
 ---
 
@@ -217,10 +273,51 @@ When an AI incorrectly claims your API key is invalid:
 
 ---
 
+## 🔐 Dual Authentication System
+
+**NEW in v2.0**: This toolkit now supports testing both authentication methods:
+
+1. **✅ SDK Authentication (Recommended)**
+   - Official `@nillion/nilai-ts` SDK
+   - Automatic NUC token generation
+   - **This is the ONLY officially supported method**
+   - Expected result: ✅ Works perfectly
+
+2. **⚠️ Bearer Token Authentication (Deprecated - Testing Only)**
+   - Raw HTTP with Authorization: Bearer header
+   - Provided for testing and comparison
+   - Expected result: ❌ 401 Unauthorized (proves deprecation)
+   - Example token: "Nillion2025"
+
+### Quick Authentication Test
+
+```bash
+# Test SDK authentication (default - works)
+node index.js your-api-key
+
+# Test bearer token (expected to fail)
+node index.js --auth-mode bearer --bearer-token Nillion2025
+
+# Compare both methods side-by-side
+node index.js --compare --api-key your-api-key
+```
+
+See [Authentication Methods Guide](docs/AUTH-METHODS.md) for detailed documentation.
+
+---
+
 ## 📁 Project Structure
 
 ```
 nil-ai-verifier/
+├── auth/                     # NEW: Authentication abstraction layer
+│   ├── AuthManager.js        # Factory for auth providers
+│   ├── SDKAuthProvider.js    # Official SDK implementation
+│   └── BearerTokenAuthProvider.js # Bearer token (testing)
+├── testing/                  # NEW: Authentication testing tools
+│   └── authComparison.js     # Side-by-side comparison tool
+├── docs/                     # NEW: Comprehensive documentation
+│   └── AUTH-METHODS.md       # Authentication methods guide
 ├── verification-ui/          # Main Electron application
 │   ├── src/
 │   │   ├── components/       # React UI components
@@ -293,6 +390,76 @@ npm run electron-pack
 | `npm run electron-pack` | Build distributable Electron app |
 | `npm test` | Run test suite |
 | `npm run lint` | Lint code with ESLint |
+
+---
+
+## 🧪 Authentication Testing
+
+### Why Test Both Methods?
+
+The dual authentication system serves multiple purposes:
+
+1. **Educational**: Understand why Nillion requires SDK authentication
+2. **Verification**: Prove that deprecated bearer token methods don't work
+3. **Documentation**: Generate empirical evidence for technical discussions
+4. **AI Assistant Proof**: Show definitive proof when AI assistants incorrectly suggest bearer tokens
+
+### Testing Workflow
+
+#### Step 1: Test SDK Authentication (Expected: ✅ Success)
+```bash
+node index.js --auth-mode sdk --api-key your-api-key
+```
+
+Expected output:
+```
+✅ SDK authentication SUCCESSFUL!
+Response: "Connection successful!"
+Response Time: 1234ms
+```
+
+#### Step 2: Test Bearer Token (Expected: ❌ Failure)
+```bash
+node index.js --auth-mode bearer --bearer-token Nillion2025
+```
+
+Expected output:
+```
+❌ Bearer authentication FAILED
+Error: 401 Unauthorized
+✓ This failure was expected - bearer token authentication is deprecated
+```
+
+#### Step 3: Compare Both Methods
+```bash
+node index.js --compare --api-key your-key --bearer-token Nillion2025
+```
+
+Generates a comparison table showing:
+- SDK: ✅ PASS (works)
+- Bearer Token: ✓ FAIL (expected - deprecated)
+- Recommendation: Use SDK authentication
+
+### Automated Testing
+
+For CI/CD or automated testing:
+
+```bash
+# Run comparison and save report
+node testing/authComparison.js \
+  --api-key $NIL_API_KEY \
+  --bearer-token Nillion2025 \
+  --output auth-report.json
+
+# Check exit code
+if [ $? -eq 0 ]; then
+  echo "Authentication tests passed as expected"
+else
+  echo "Unexpected authentication behavior detected"
+fi
+```
+
+See [Authentication Methods Guide](docs/AUTH-METHODS.md) for complete documentation.
 
 ---
 
